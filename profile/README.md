@@ -1,394 +1,184 @@
-# open-rec tutorial
+# OpenRec
 
-make `open-rec` easy to use.
+OpenRec is an open-source recommendation system built around a configurable online serving DAG,
+streaming feature pipelines, distributed offline algorithms, and an operational control plane.
+It can run as a minimal standalone stack for development or as a complete cluster workflow for
+production-oriented integration and scheduling.
 
-## standalone
-### architecture
-![standalone](https://raw.githubusercontent.com/open-rec/example/master/example_standalone/doc/openrec_standalone.jpg)
+## Projects
 
-more details: [example standalone](https://github.com/open-rec/example/tree/master/example_standalone)
+| Project | Responsibility |
+|---|---|
+| [rec-server](https://github.com/open-rec/rec-server) | Java online recommendation service and configurable serving DAG |
+| [rec-algorithm](https://github.com/open-rec/rec-algorithm) | Spark offline recall, feature, and ranking jobs |
+| [rank-engine](https://github.com/open-rec/rank-engine) | Python model inference service |
+| [rec-console](https://github.com/open-rec/rec-console) | Recall-index control plane and operations UI |
+| [data-processor](https://github.com/open-rec/data-processor) | Kafka streaming pipelines implemented with Spark and Flink |
+| [bigdata-platform](https://github.com/open-rec/bigdata-platform) | Reusable storage, messaging, compute, and scheduling infrastructure |
+| [example](https://github.com/open-rec/example) | Standalone and cluster composition roots with end-to-end verification |
+| [sdk](https://github.com/open-rec/sdk) | Client SDKs for OpenRec services |
 
-## cluster
-### architecture
-![cluster](https://raw.githubusercontent.com/open-rec/example/master/example_cluster/doc/openrec_cluster.jpg)
+## Standalone architecture
 
-more details: [example cluster](https://github.com/open-rec/example/tree/master/example_cluster)
+Standalone mode is the smallest complete recommendation chain. It is intended for local
+development, algorithm verification, and integration testing on one machine.
 
+```mermaid
+flowchart LR
+    User[User or application] --> Web[Web Demo or SDK]
+    Web --> API[rec-server<br/>standalone profile]
 
+    subgraph Storage[bigdata-platform standalone]
+        Redis[(Redis<br/>entities · events · exposure filters)]
+        ES[(Elasticsearch<br/>recall and vector indexes)]
+    end
 
-## showcase
-use `douban` opensource data.  
-user: 64w+  
-item: 14w+  
-event: 200w+
+    API <-->|entities · behavior · filters| Redis
+    API <-->|recall · vector search| ES
+    API -->|recommendations| Web
 
-### cold start
-```json
-{
-  "code": 200,
-  "status": true,
-  "msg": "",
-  "data": {
-    "results": [
-      {
-        "id": "27010768",
-        "score": 1
-      },
-      {
-        "id": "1296141",
-        "score": 0.9678456591639871
-      },
-      {
-        "id": "1293908",
-        "score": 0.9678456591639871
-      },
-      {
-        "id": "1292052",
-        "score": 0.9646302250803859
-      },
-      {
-        "id": "1308162",
-        "score": 0.9614147909967846
-      },
-      {
-        "id": "1291858",
-        "score": 0.9614147909967846
-      },
-      {
-        "id": "1304920",
-        "score": 0.9517684887459807
-      },
-      {
-        "id": "1291561",
-        "score": 0.9485530546623794
-      },
-      {
-        "id": "1293310",
-        "score": 0.9453376205787781
-      },
-      {
-        "id": "24751811",
-        "score": 0.9421221864951769
-      }
-    ],
-    "detailInfos": [
-      {
-        "id": "27010768",
-        "weight": 0,
-        "title": "寄生虫 - 电影",
-        "category": "剧情",
-        "tags": "韩国/韩国电影/奉俊昊/宋康昊/人性/戛纳/2019/剧情",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1296141",
-        "weight": 0,
-        "title": "控方证人 - 电影",
-        "category": "剧情/悬疑/犯罪",
-        "tags": "悬疑/经典/推理/犯罪/美国/黑白/法律/剧情",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1293908",
-        "weight": 9,
-        "title": "城市之光",
-        "category": "剧情/喜剧/爱情",
-        "tags": "卓别林/喜剧/默片/经典/美国/黑白/CharlesChaplin/美国电影",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1292052",
-        "weight": 0,
-        "title": "肖申克的救赎 - 电影",
-        "category": "剧情/犯罪",
-        "tags": "经典/励志/信念/自由/人性/人生/美国/剧情",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1308162",
-        "weight": 0,
-        "title": "女人，四十 - 电影",
-        "category": "剧情/家庭",
-        "tags": "香港/女性/家庭/生活/剧情/人生/1995/亲情",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1291858",
-        "weight": 0,
-        "title": "鬼子来了 - 电影",
-        "category": "剧情/历史/战争",
-        "tags": "姜文/人性/战争/鬼子来了/抗日/中国电影/黑色幽默/中国",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1304920",
-        "weight": 0,
-        "title": "切腹 - 电影",
-        "category": "剧情",
-        "tags": "日本/小林正树/武士/日本电影/仲代达矢/黑白/1962/切腹",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1291561",
-        "weight": 9,
-        "title": "千与千寻",
-        "category": "剧情/动画/奇幻",
-        "tags": "日本/动画/动漫/成长/经典/温情/人性/吉卜力",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1293310",
-        "weight": 8,
-        "title": "椿三十郎",
-        "category": "剧情/动作/惊悚",
-        "tags": "黑泽明/日本/三船敏郎/武士/日本电影/仲代达矢/1962/动作",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "24751811",
-        "weight": 0,
-        "title": "剧院魅影：25周年纪念演出 - 电影",
-        "category": "剧情/音乐/歌舞",
-        "tags": "音乐剧/歌剧魅影/经典/英国/歌剧/25周年/爱情/音乐",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      }
-    ]
-  }
-}
+    Loader[Example data loader] --> Redis
+    Loader --> ES
 ```
 
-### personalized 
-base trigger: [葬礼之后](https://movie.douban.com/subject/1768214/)
-```json
-{
-  "code": 200,
-  "status": true,
-  "msg": "",
-  "data": {
-    "results": [
-      {
-        "id": "1768141",
-        "score": 0.08358968296584475
-      },
-      {
-        "id": "3426877",
-        "score": 0.07665220781278664
-      },
-      {
-        "id": "1427040",
-        "score": 0.07655959028113997
-      },
-      {
-        "id": "1427039",
-        "score": 0.07570950809055003
-      },
-      {
-        "id": "1768209",
-        "score": 0.07437190381291456
-      },
-      {
-        "id": "3228086",
-        "score": 0.0697870242753483
-      },
-      {
-        "id": "1421737",
-        "score": 0.06672216347590268
-      },
-      {
-        "id": "3992966",
-        "score": 0.0652121816197966
-      },
-      {
-        "id": "4106641",
-        "score": 0.06475048223743467
-      },
-      {
-        "id": "1768212",
-        "score": 0.06289306435371969
-      }
-    ],
-    "detailInfos": [
-      {
-        "id": "1768141",
-        "weight": 0,
-        "title": "遗产风波 - 电影",
-        "category": "悬疑/惊悚/犯罪",
-        "tags": "英剧/阿加莎·克里斯蒂/推理/英国/悬疑/Poirot/AgathaChristie/侦探",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "3426877",
-        "weight": 7,
-        "title": "鸽群中的猫",
-        "category": "剧情/悬疑/惊悚/犯罪",
-        "tags": "英剧/阿加莎·克里斯蒂/推理/英国/悬疑/AgathaChristie/Poirot/波洛",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1427040",
-        "weight": 7,
-        "title": "空幻之屋",
-        "category": "剧情/爱情/悬疑/犯罪",
-        "tags": "阿加莎·克里斯蒂/推理/英剧/英国/波洛/悬疑/Poirot/AgathaChristie",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1427039",
-        "weight": 8,
-        "title": "H庄园的一次午餐",
-        "category": "剧情/爱情/悬疑/犯罪",
-        "tags": "阿加莎·克里斯蒂/推理/英国/英剧/悬疑/波洛/侦探/Poirot",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1768209",
-        "weight": 7,
-        "title": "底牌",
-        "category": "剧情/悬疑/犯罪",
-        "tags": "阿加莎·克里斯蒂/推理/英剧/英国/悬疑/Poirot/侦探/波洛",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "3228086",
-        "weight": 7,
-        "title": "第三个女郎",
-        "category": "悬疑/惊悚/犯罪",
-        "tags": "英剧/阿加莎·克里斯蒂/推理/Poirot/AgathaChristie/英国/悬疑/波洛",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1421737",
-        "weight": 0,
-        "title": "埃奇威尔爵士之死 - 电影",
-        "category": "悬疑/犯罪",
-        "tags": "阿加莎·克里斯蒂/推理/英国/悬疑/英剧/波洛/侦探/Poirot",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "3992966",
-        "weight": 0,
-        "title": "三幕悲剧 - 电影",
-        "category": "剧情/悬疑/惊悚/犯罪",
-        "tags": "阿加莎·克里斯蒂/推理/英剧/英国/悬疑/Poirot/波洛/AgathaChristie",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "4106641",
-        "weight": 7,
-        "title": "怪钟疑案",
-        "category": "剧情/悬疑/犯罪",
-        "tags": "阿加莎·克里斯蒂/推理/英国/悬疑/英剧/波洛/侦探/Poirot",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      },
-      {
-        "id": "1768212",
-        "weight": 7,
-        "title": "蓝色特快上的秘密",
-        "category": "剧情/悬疑/犯罪",
-        "tags": "阿加莎·克里斯蒂/推理/英剧/英国/波洛/悬疑/侦探/Poirot",
-        "scene": "douban_movie",
-        "pubTime": "0",
-        "modifyTime": "0",
-        "expireTime": "0",
-        "status": 1,
-        "extFields": "{}"
-      }
-    ]
-  }
-}
+Key characteristics:
+
+- `rec-server` writes pushed data directly to Redis.
+- Hot, new, i2i, and embedding recall data are queried from Elasticsearch.
+- Redis retains online entities, behavior, blacklist, and exposure-filter state.
+- Ranking runs in bypass mode; `rank-engine` is not required.
+- Kafka, distributed processing, Airflow, and `rec-console` are not required.
+
+The internal recall, filtering, combination, and operation flow is defined by the configurable
+serving DAG in [rec-server](https://github.com/open-rec/rec-server) and is intentionally omitted
+from this deployment-level diagram.
+
+Start the complete standalone example:
+
+```shell
+./example/example_standalone/start.sh
 ```
+
+See the [standalone guide](https://github.com/open-rec/example/tree/master/example_standalone) for
+prerequisites, endpoints, smoke verification, and troubleshooting.
+
+## Cluster architecture
+
+Cluster mode is the composition root for the complete recommendation lifecycle. It combines
+online serving, real-time ingestion, distributed offline computation, scheduled publishing, model
+inference, and recall-index operations.
+
+```mermaid
+flowchart TB
+    Client[User · Web Demo · SDK] --> RecServer[rec-server<br/>cluster profile]
+
+    subgraph Online[Online recommendation path]
+        direction LR
+        RecallDAG[Serving DAG<br/>recall · filter · combine]
+        RecallDAG --> Rank[rank-engine<br/>model inference]
+        Rank --> Result[Ranked recommendations]
+        Result --> Response[Response to caller]
+    end
+
+    subgraph Streaming[Real-time ingestion path]
+        direction LR
+        Kafka[(Kafka)]
+        Kafka --> Processor[Spark data-processor]
+    end
+
+    subgraph Storage[Shared serving and analytical storage]
+        direction LR
+        Redis[(Redis<br/>features · behavior · filters)]
+        Hive[(Hive entity and event tables)]
+        ES[(Elasticsearch<br/>versioned recall indexes)]
+    end
+
+    subgraph Offline[Daily offline recall path]
+        direction LR
+        Airflow[Airflow<br/>bootstrap and daily DAGs] --> Runner[rec-algorithm runner]
+        Runner -->|spark-submit| Spark[Spark cluster<br/>hot · new · i2i jobs]
+        Spark -->|prepare and activate| Console[rec-console]
+    end
+
+    RecServer -->|recommend request| RecallDAG
+    RecServer -->|push API| Kafka
+
+    RecallDAG -->|online state| Redis
+    RecallDAG -->|active recall aliases| ES
+    Processor -->|online features| Redis
+    Processor -->|entity and event data| Hive
+
+    Hive <-->|read daily partitions · write result tables| Spark
+    Spark -->|bulk-write staging index| ES
+    Console -->|create · validate · switch · retain · rollback| ES
+```
+
+The recall release protocol keeps online serving independent from index deployment:
+
+```mermaid
+sequenceDiagram
+    participant A as Airflow
+    participant R as rec-algorithm runner
+    participant S as Spark recall job
+    participant C as rec-console
+    participant E as Elasticsearch
+    participant O as rec-server
+
+    A->>R: Submit daily hot, new, or i2i job
+    R->>S: spark-submit with business date and revision
+    S->>C: Prepare versioned staging index
+    C->>E: Create mapping and physical index
+    S->>E: Bulk-write recall documents
+    S->>C: Activate with expected document count
+    C->>E: Refresh and validate count
+    C->>E: Atomically switch active alias
+    O->>E: Continue querying the stable active alias
+    C->>E: Retain active and rollback versions
+```
+
+Key characteristics:
+
+- Kafka and Spark decouple online push traffic from feature persistence.
+- HDFS and Hive provide partitioned source and result tables for offline jobs.
+- Airflow owns dependency orchestration and daily scheduling without managing Docker containers.
+- `rec-console` owns index creation, validation, activation, retention, explicit switching, and
+  emergency rollback; `rec-server` remains read-only and version-agnostic.
+- `rank-engine` provides online model inference and can evolve independently from serving DAGs.
+- The default recall retention policy keeps the active version plus one rollback version.
+
+Start and verify the complete cluster:
+
+```shell
+./example/example_cluster/start.sh
+```
+
+Main endpoints after startup:
+
+| Service | Endpoint |
+|---|---|
+| Web Demo | `http://<host>:12345` |
+| rec-server | `http://<host>:13579` |
+| rank-engine | `http://<host>:8123` |
+| rec-console | `http://<host>:8095` |
+| Airflow | `http://<host>:8091` |
+| Spark | `http://<host>:8083` |
+| Flink | `http://<host>:8087` |
+
+See the [cluster guide](https://github.com/open-rec/example/tree/master/example_cluster) for the
+full startup sequence, service ownership, DAG behavior, and troubleshooting.
+
+## Deployment comparison
+
+| Concern | Standalone | Cluster |
+|---|---|---|
+| Primary use | Local development and smoke testing | Complete distributed integration |
+| Infrastructure | Redis and Elasticsearch | Kafka, HDFS, Hive, Spark, Flink, Redis, Elasticsearch, Airflow |
+| Push path | `rec-server` writes Redis directly | `rec-server` publishes to Kafka |
+| Streaming processor | Not required | Spark data-processor |
+| Offline scheduling | Not required | Airflow and Spark recall jobs |
+| Recall index control | Example bootstrap data | `rec-console` version lifecycle |
+| Ranking | Bypassed | `rank-engine` inference |
+| Online recall contract | Elasticsearch aliases and vector indexes | Same online contract |
+
+Both modes use the same `rec-server` image, recommendation DAG, storage contracts, sample data,
+and Web Demo. Runtime profiles change deployment behavior without changing the recommendation API.
