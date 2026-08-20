@@ -10,7 +10,7 @@ production-oriented integration and scheduling.
 | Project | Responsibility |
 |---|---|
 | [rec-server](https://github.com/open-rec/rec-server) | Java online recommendation service and configurable serving DAG |
-| [rec-algorithm](https://github.com/open-rec/rec-algorithm) | Spark offline recall, feature, and ranking jobs |
+| [rec-algorithm](https://github.com/open-rec/rec-algorithm) | Local and Spark recall, feature, and ranking jobs |
 | [rank-engine](https://github.com/open-rec/rank-engine) | Python model inference service |
 | [rec-console](https://github.com/open-rec/rec-console) | Recall-index control plane and operations UI |
 | [data-processor](https://github.com/open-rec/data-processor) | Kafka streaming pipelines implemented with Spark and Flink |
@@ -34,16 +34,20 @@ flowchart LR
     end
 
     API <-->|entities · behavior · filters| Redis
-    API <-->|recall · vector search| ES
+    API -->|recall · vector queries| ES
     API -->|recommendations| Web
 
-    Loader[Example data loader] --> Redis
-    Loader --> ES
+    Source[Entity and event data] --> Algorithm[rec-algorithm<br/>local mode]
+    Source -->|online entities and behavior| Redis
+    Algorithm --> Dataset[Recall datasets]
+    Dataset --> ES
 ```
 
 Key characteristics:
 
 - `rec-server` writes pushed data directly to Redis.
+- `rec-algorithm` local mode turns entity and event data into recall datasets; the example imports
+  source entities and behavior into Redis and recall datasets into Elasticsearch.
 - Hot, new, i2i, and embedding recall data are queried from Elasticsearch.
 - Redis retains online entities, behavior, blacklist, and exposure-filter state.
 - Ranking runs in bypass mode; `rank-engine` is not required.
@@ -73,7 +77,7 @@ flowchart TB
     Client[User · Web Demo · SDK] --> RecServer[rec-server<br/>cluster profile]
 
     subgraph Online[Online recommendation path]
-        direction LR
+        direction TB
         RecallDAG[Serving DAG<br/>recall · filter · combine]
         RecallDAG --> Rank[rank-engine<br/>model inference]
         Rank --> Result[Ranked recommendations]
@@ -81,20 +85,20 @@ flowchart TB
     end
 
     subgraph Streaming[Real-time ingestion path]
-        direction LR
+        direction TB
         Kafka[(Kafka)]
         Kafka --> Processor[Spark data-processor]
     end
 
     subgraph Storage[Shared serving and analytical storage]
-        direction LR
+        direction TB
         Redis[(Redis<br/>features · behavior · filters)]
         Hive[(Hive entity and event tables)]
         ES[(Elasticsearch<br/>versioned recall indexes)]
     end
 
     subgraph Offline[Daily offline recall path]
-        direction LR
+        direction TB
         Airflow[Airflow<br/>bootstrap and daily DAGs] --> Runner[rec-algorithm runner]
         Runner -->|spark-submit| Spark[Spark cluster<br/>hot · new · i2i jobs]
         Spark -->|prepare and activate| Console[rec-console]
@@ -139,7 +143,8 @@ sequenceDiagram
 Key characteristics:
 
 - Kafka and Spark decouple online push traffic from feature persistence.
-- HDFS and Hive provide partitioned source and result tables for offline jobs.
+- Hive exposes partitioned source and result tables to offline jobs; its underlying HDFS storage is
+  intentionally omitted from the service-level diagram.
 - Airflow owns dependency orchestration and daily scheduling without managing Docker containers.
 - `rec-console` owns index creation, validation, activation, retention, explicit switching, and
   emergency rollback; `rec-server` remains read-only and version-agnostic.
@@ -176,7 +181,7 @@ full startup sequence, service ownership, DAG behavior, and troubleshooting.
 | Push path | `rec-server` writes Redis directly | `rec-server` publishes to Kafka |
 | Streaming processor | Not required | Spark data-processor |
 | Offline scheduling | Not required | Airflow and Spark recall jobs |
-| Recall index control | Example bootstrap data | `rec-console` version lifecycle |
+| Recall data publishing | `rec-algorithm` local output and example import | Airflow, Spark, and `rec-console` version lifecycle |
 | Ranking | Bypassed | `rank-engine` inference |
 | Online recall contract | Elasticsearch aliases and vector indexes | Same online contract |
 
