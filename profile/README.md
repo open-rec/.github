@@ -12,7 +12,7 @@ production-oriented integration and scheduling.
 | [rec-server](https://github.com/open-rec/rec-server) | Java online recommendation service and configurable serving DAG |
 | [rec-algorithm](https://github.com/open-rec/rec-algorithm) | Local and Spark recall, feature, and ranking jobs |
 | [rank-engine](https://github.com/open-rec/rank-engine) | Python model inference service |
-| [rec-console](https://github.com/open-rec/rec-console) | Recall-index control plane and operations UI |
+| [rec-console](https://github.com/open-rec/rec-console) | Mode-aware operations UI for monitoring, diagnostics, Serving Graph, recall indexes, workflows, analytics, and models |
 | [data-processor](https://github.com/open-rec/data-processor) | Kafka streaming pipelines implemented with Spark and Flink |
 | [bigdata-platform](https://github.com/open-rec/bigdata-platform) | Reusable storage, messaging, compute, and scheduling infrastructure |
 | [example](https://github.com/open-rec/example) | Standalone and cluster composition roots with end-to-end verification |
@@ -31,16 +31,24 @@ flowchart LR
     subgraph Storage[bigdata-platform standalone]
         Redis[(Redis<br/>entities · events · exposure filters)]
         ES[(Elasticsearch<br/>recall and vector indexes)]
+        Prometheus[(Prometheus)]
+        Grafana[Grafana]
     end
+
+    Operator[Operator] --> Console[rec-console<br/>standalone mode]
 
     API <-->|entities · behavior · filters| Redis
     API -->|recall · vector queries| ES
     API -->|recommendations| Web
-
+    Prometheus -->|scrape API metrics| API
+    Grafana -->|query metrics| Prometheus
     Source[Entity and event data] --> Algorithm[rec-algorithm<br/>local mode]
     Source -->|online entities and behavior| Redis
     Algorithm --> Dataset[Recall datasets]
     Dataset --> ES
+
+    Console -->|entity diagnostics · Serving Graph| API
+    Console -->|embedded monitoring dashboard| Grafana
 ```
 
 Key characteristics:
@@ -50,8 +58,12 @@ Key characteristics:
   source entities and behavior into Redis and recall datasets into Elasticsearch.
 - Hot, new, i2i, and embedding recall data are queried from Elasticsearch.
 - Redis retains online entities, behavior, blacklist, and exposure-filter state.
+- `rec-console` provides monitoring, entity diagnostics, and Serving Graph management. Recall-index
+  management, offline DAG, data analysis, Airflow automation, and Rank Model remain visible but are
+  disabled as cluster-only modules.
+- Prometheus collects rec-server metrics and Grafana provides the dashboard embedded by rec-console.
 - Ranking runs in bypass mode; `rank-engine` is not required.
-- Kafka, distributed processing, Airflow, and `rec-console` are not required.
+- Kafka, distributed processing, and Airflow are not required.
 
 The internal recall, filtering, combination, and operation flow is defined by the configurable
 serving DAG in [rec-server](https://github.com/open-rec/rec-server) and is intentionally omitted
@@ -70,51 +82,73 @@ prerequisites, endpoints, smoke verification, and troubleshooting.
 
 Cluster mode is the composition root for the complete recommendation lifecycle. It combines
 online serving, real-time ingestion, distributed offline computation, scheduled publishing, model
-inference, and recall-index operations.
+inference, observability, analytics, and control-plane operations.
 
 ```mermaid
 flowchart TB
     Client[User · Web Demo · SDK] --> RecServer[rec-server<br/>cluster profile]
+    Operator[Operator] --> Console[rec-console<br/>cluster mode]
 
     subgraph Online[Online recommendation path]
         direction TB
         RecallDAG[Serving DAG<br/>recall · filter · combine]
         RecallDAG --> Rank[rank-engine<br/>model inference]
-        Rank --> Result[Ranked recommendations]
-        Result --> Response[Response to caller]
+        Rank --> Response[Ranked response]
     end
 
-    subgraph Streaming[Real-time ingestion path]
+    subgraph Streaming[Real-time ingestion and feature path]
         direction TB
         Kafka[(Kafka)]
         Kafka --> Processor[Spark data-processor]
     end
 
-    subgraph Storage[Shared serving and analytical storage]
+    subgraph Storage[Serving and analytical storage]
         direction TB
         Redis[(Redis<br/>features · behavior · filters)]
-        Hive[(Hive entity and event tables)]
+        HBase[(HBase<br/>raw entity archive)]
+        Hive[(Hive on HDFS<br/>partitioned entities and events)]
         ES[(Elasticsearch<br/>versioned recall indexes)]
+        Models[(Versioned model artifacts)]
     end
 
-    subgraph Offline[Daily offline recall path]
+    subgraph Offline[Scheduled and on-demand computation]
         direction TB
-        Airflow[Airflow<br/>bootstrap and daily DAGs] --> Runner[rec-algorithm runner]
-        Runner -->|spark-submit| Spark[Spark cluster<br/>hot · new · i2i jobs]
-        Spark -->|prepare and activate| Console[rec-console]
+        Airflow[Airflow<br/>bootstrap · recall · rank DAGs]
+        Runner[rec-algorithm runner]
+        Spark[Spark cluster<br/>recall · rank · analytics jobs]
+        Airflow -->|submit jobs| Runner
+        Runner -->|spark-submit| Spark
+    end
+
+    subgraph Observability[Observability]
+        direction LR
+        Prometheus[(Prometheus)]
+        Grafana[Grafana]
+        Grafana -->|query metrics| Prometheus
     end
 
     RecServer -->|recommend request| RecallDAG
+    Response --> Client
     RecServer -->|push API| Kafka
 
     RecallDAG -->|online state| Redis
     RecallDAG -->|active recall aliases| ES
-    Processor -->|online features| Redis
-    Processor -->|entity and event data| Hive
+    Processor -->|serving projection| Redis
+    Processor -->|unaltered entities| HBase
+    Processor -->|daily partitions| Hive
 
-    Hive <-->|read daily partitions · write result tables| Spark
+    Hive <-->|cumulative training and analysis data| Spark
     Spark -->|bulk-write staging index| ES
+    Spark -->|train · evaluate · retain| Models
     Console -->|create · validate · switch · retain · rollback| ES
+    Console <-->|DAG control · config · run state| Airflow
+    Console -->|business analytics| Runner
+    Console -->|entity diagnostics · Serving Graph| RecServer
+    Console -->|activate · rollback model| Rank
+    Models -->|load active version| Rank
+
+    Prometheus -->|scrape API metrics| RecServer
+    Console -->|embedded dashboard| Grafana
 ```
 
 The recall release protocol keeps online serving independent from index deployment:
@@ -142,13 +176,16 @@ sequenceDiagram
 
 Key characteristics:
 
-- Kafka and Spark decouple online push traffic from feature persistence.
-- Hive exposes partitioned source and result tables to offline jobs; its underlying HDFS storage is
-  intentionally omitted from the service-level diagram.
-- Airflow owns dependency orchestration and daily scheduling without managing Docker containers.
-- `rec-console` owns index creation, validation, activation, retention, explicit switching, and
-  emergency rollback; `rec-server` remains read-only and version-agnostic.
-- `rank-engine` provides online model inference and can evolve independently from serving DAGs.
+- Kafka and the Spark data-processor decouple online pushes from Redis projections, HBase raw
+  entity retention, and immutable Hive/HDFS daily partitions.
+- Airflow owns bootstrap, recall, rank-training, and rollback orchestration without managing Docker
+  containers. The rec-algorithm runner turns those requests into Spark submissions.
+- Spark reads cumulative Hive partitions for hot/new/i2i recall, rank training and evaluation, and
+  on-demand business analytics.
+- `rec-console` manages Airflow, recall-index releases, model activation and rollback, Serving Graph,
+  entity diagnostics, analytics, and the embedded monitoring dashboard.
+- `rank-engine` loads only evaluated model artifacts activated through rec-console.
+- Prometheus collects rec-server API metrics and Grafana supplies the console monitoring dashboard.
 - The default recall retention policy keeps the active version plus one rollback version.
 
 Start and verify the complete cluster:
@@ -177,12 +214,13 @@ full startup sequence, service ownership, DAG behavior, and troubleshooting.
 | Concern | Standalone | Cluster |
 |---|---|---|
 | Primary use | Local development and smoke testing | Complete distributed integration |
-| Infrastructure | Redis and Elasticsearch | Kafka, HDFS, Hive, Spark, Flink, Redis, Elasticsearch, Airflow |
+| Infrastructure | Redis, Elasticsearch, Prometheus, and Grafana | Kafka, HDFS, Hive, HBase, Spark, Flink, Redis, Elasticsearch, Airflow, Prometheus, and Grafana |
 | Push path | `rec-server` writes Redis directly | `rec-server` publishes to Kafka |
 | Streaming processor | Not required | Spark data-processor |
 | Offline scheduling | Not required | Airflow and Spark recall jobs |
 | Recall data publishing | `rec-algorithm` local output and example import | Airflow, Spark, and `rec-console` version lifecycle |
 | Ranking | Bypassed | `rank-engine` inference |
+| Operations console | Monitoring, entity diagnostics, and Serving Graph | All rec-console modules |
 | Online recall contract | Elasticsearch aliases and vector indexes | Same online contract |
 
 Both modes use the same `rec-server` image, recommendation DAG, storage contracts, sample data,
