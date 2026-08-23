@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/open-rec/.github/blob/master/SECURITY.md
+    about: Report vulnerabilities privately; do not open a public issue.
+  - name: OpenRec support routing
+    url: https://github.com/open-rec/.github/blob/master/SUPPORT.md
+    about: Find the repository that owns your question or defect.

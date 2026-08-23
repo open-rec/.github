@@ -1,22 +1,114 @@
 # OpenRec
 
-OpenRec is an open-source recommendation system built around a configurable online serving DAG,
-streaming feature pipelines, distributed offline algorithms, and an operational control plane.
-It can run as a minimal standalone stack for development or as a complete cluster workflow for
-production-oriented integration and scheduling.
+**An end-to-end open-source recommendation platform that grows from a single machine to a
+distributed data stack without changing your application API.**
 
-## Projects
+OpenRec connects data ingestion, streaming and batch processing, recall generation, configurable
+online serving, model training, experimentation, observability, and operations in one system. Use
+the lightweight standalone distribution for development and small-to-medium workloads, or enable
+the cluster distribution for Kafka, Spark, Airflow, versioned recall indexes, and model lifecycle
+management.
 
-| Project | Responsibility |
-|---|---|
-| [rec-server](https://github.com/open-rec/rec-server) | Java online recommendation service and configurable serving DAG |
-| [rec-algorithm](https://github.com/open-rec/rec-algorithm) | Local and Spark recall, feature, and ranking jobs |
-| [rank-engine](https://github.com/open-rec/rank-engine) | Python model inference service |
-| [rec-console](https://github.com/open-rec/rec-console) | Mode-aware operations UI for monitoring, diagnostics, Serving Graph, recall indexes, workflows, analytics, and models |
-| [data-processor](https://github.com/open-rec/data-processor) | Kafka streaming pipelines implemented with Spark and Flink |
-| [bigdata-platform](https://github.com/open-rec/bigdata-platform) | Reusable storage, messaging, compute, and scheduling infrastructure |
-| [example](https://github.com/open-rec/example) | Standalone and cluster composition roots with end-to-end verification |
-| [sdk](https://github.com/open-rec/sdk) | Client SDKs for OpenRec services |
+[Get started](https://github.com/open-rec/example#quick-start) ·
+[Standalone guide](https://github.com/open-rec/example/tree/master/example_standalone) ·
+[Cluster guide](https://github.com/open-rec/example/tree/master/example_cluster) ·
+[Architecture](https://github.com/open-rec/example/blob/master/docs/architecture.md) ·
+[Contributing](https://github.com/open-rec/.github/blob/master/CONTRIBUTING.md) ·
+[Security](https://github.com/open-rec/.github/blob/master/SECURITY.md)
+
+## Why OpenRec
+
+- **One API, two deployment modes.** Start locally, then move ingestion, features, recall, and
+  ranking onto distributed infrastructure without replacing the recommendation contract.
+- **Complete recommendation lifecycle.** Ingest users, items, and events; compute recall tables;
+  train and publish models; serve recommendations; measure and operate the system.
+- **Configurable online DAG.** Compose recall, filtering, ranking, combination, and operation nodes,
+  then publish or roll back graph snapshots through the control plane.
+- **Safe artifact lifecycle.** Recall indexes and rank models are immutable, validated, activated
+  atomically, retained by policy, and explicitly rollbackable.
+- **Observable by design.** Request metrics, dependency health, business analytics, entity
+  diagnostics, Airflow state, and Grafana dashboards are available from the operations console.
+- **Replaceable components.** Storage, recall algorithms, operation rules, processing engines, and
+  clients are separated into focused repositories with documented contracts.
+
+## Quick start
+
+Clone the distribution repository together with its sibling components, then start the smallest
+complete recommendation chain:
+
+```shell
+git clone https://github.com/open-rec/example.git
+cd example
+./scripts/checkout-components.sh
+./example_standalone/start.sh
+```
+
+After the acceptance check succeeds, open the Web Demo at `http://127.0.0.1:12345` and the OpenRec
+Console at `http://127.0.0.1:8095`.
+
+> The distribution is under active development. Review the deployment guide and replace all sample
+> credentials before exposing any service outside a trusted development network.
+
+## Product landscape
+
+```mermaid
+flowchart LR
+    Client[Applications and SDKs] --> Serving[rec-server<br/>online serving DAG]
+    Operator[Operators] --> Console[rec-console<br/>control plane]
+
+    subgraph DataPlane[Data and model plane]
+        Stream[data-processor<br/>streaming projections]
+        Offline[rec-algorithm<br/>recall · feature · rank]
+        Rank[rank-engine<br/>model inference]
+        Stores[(Redis · Elasticsearch<br/>Kafka · HDFS · Hive · HBase)]
+    end
+
+    Serving --> Rank
+    Serving <--> Stores
+    Stream --> Stores
+    Offline --> Stores
+    Console --> Serving
+    Console --> Rank
+    Console --> Offline
+
+    Platform[bigdata-platform<br/>infrastructure · scheduling · monitoring] --- Stores
+    Distribution[example<br/>release · deployment · end-to-end CI] --- Serving
+    Distribution --- Console
+```
+
+### Recommendation lifecycle
+
+```mermaid
+flowchart LR
+    Ingest[Users · items · events] --> Project[Online projection]
+    Ingest --> Lake[Historical data]
+    Lake --> Compute[Recall and model jobs]
+    Compute --> Validate[Validate immutable artifacts]
+    Validate --> Activate[Atomic activation]
+    Activate --> Recommend[Online recommendation DAG]
+    Recommend --> Feedback[Exposure · click · conversion]
+    Feedback --> Ingest
+    Observe[Metrics · analytics · experiments] --> Compute
+    Observe --> Recommend
+```
+
+## Deployment modes
+
+| Capability | Standalone | Cluster |
+|---|---|---|
+| Intended use | Local development and small-to-medium integration | Distributed, production-oriented integration |
+| Application API and serving DAG | `rec-server` | The same `rec-server` contract |
+| Online state | Redis | Redis projections from Kafka |
+| Recall and vector indexes | Elasticsearch | Versioned Elasticsearch indexes and active aliases |
+| Ingestion | Direct write | Kafka mutation envelope |
+| Processing | Local import and algorithms | Spark/Flink streaming and batch processing |
+| Scheduling | Manual/local | Airflow |
+| Ranking | Optional bypass | Versioned `rank-engine` models |
+| Operations | Monitoring, entities, serving graph | Full workflow, release, analytics, model, and experiment control |
+| Observability | Prometheus and Grafana | Prometheus and Grafana plus distributed service metrics |
+
+Both modes use the same sample data, recommendation API, serving graph contract, and Web Demo. The
+deployment profile changes the data path rather than the application integration.
 
 ## Standalone architecture
 
@@ -209,19 +301,55 @@ Main endpoints after startup:
 See the [cluster guide](https://github.com/open-rec/example/tree/master/example_cluster) for the
 full startup sequence, service ownership, DAG behavior, and troubleshooting.
 
-## Deployment comparison
+## Component map
 
-| Concern | Standalone | Cluster |
+| Repository | Responsibility | Start here when… |
 |---|---|---|
-| Primary use | Local development and smoke testing | Complete distributed integration |
-| Infrastructure | Redis, Elasticsearch, Prometheus, and Grafana | Kafka, HDFS, Hive, HBase, Spark, Flink, Redis, Elasticsearch, Airflow, Prometheus, and Grafana |
-| Push path | `rec-server` writes Redis directly | `rec-server` publishes to Kafka |
-| Streaming processor | Not required | Spark data-processor |
-| Offline scheduling | Not required | Airflow and Spark recall jobs |
-| Recall data publishing | `rec-algorithm` local output and example import | Airflow, Spark, and `rec-console` version lifecycle |
-| Ranking | Bypassed | `rank-engine` inference |
-| Operations console | Monitoring, entity diagnostics, and Serving Graph | All rec-console modules |
-| Online recall contract | Elasticsearch aliases and vector indexes | Same online contract |
+| **[example](https://github.com/open-rec/example)** | OpenRec distribution, deployment guides, version manifest, runnable examples, and end-to-end CI | You want to install, evaluate, or release OpenRec |
+| **[rec-server](https://github.com/open-rec/rec-server)** | Java online service, recommendation protocol, serving DAG, recall/filter/rank nodes | You are extending online recommendation behavior |
+| **[rec-console](https://github.com/open-rec/rec-console)** | Operations UI and APIs for graph, workflow, recall, model, experiment, analytics, and diagnostics | You are operating or governing the platform |
+| **[rec-algorithm](https://github.com/open-rec/rec-algorithm)** | Local and Spark recall, embedding, feature, ranking, evaluation, and publication jobs | You are developing offline algorithms |
+| **[rank-engine](https://github.com/open-rec/rank-engine)** | Rank-model training/release support and online inference | You are adding or serving ranking models |
+| **[data-processor](https://github.com/open-rec/data-processor)** | Kafka mutation processing and Redis/HBase/Hive projections with Spark and Flink | You are changing the real-time data path |
+| **[bigdata-platform](https://github.com/open-rec/bigdata-platform)** | Containerized storage, messaging, compute, scheduling, and monitoring infrastructure | You are deploying or debugging dependencies |
+| **[sdk](https://github.com/open-rec/sdk)** | Application client SDKs | You are integrating an application |
+| **[model](https://github.com/open-rec/model)** | Sample recall datasets, features, and rank artifacts | You need reproducible sample artifacts |
 
-Both modes use the same `rec-server` image, recommendation DAG, storage contracts, sample data,
-and Web Demo. Runtime profiles change deployment behavior without changing the recommendation API.
+Dependency direction and repository ownership are maintained in the
+[distribution architecture](https://github.com/open-rec/example/blob/master/docs/architecture.md).
+
+## Quality and releases
+
+The [example distribution](https://github.com/open-rec/example) is the compatibility authority for
+a complete OpenRec version. Its manifest records the component refs used by a release, and its CI
+verifies four levels:
+
+1. Repository policy, shell, Python DAG, Compose, and manifest validation.
+2. Cross-repository Java compilation and focused unit tests.
+3. Standalone startup, sample import, serving-graph execution, and a real recommendation request.
+4. Cluster ingestion, streaming projection, Hive persistence, recall publication, model lifecycle,
+   analytics, deletion semantics, and online serving.
+
+Component repositories remain independently testable and releasable, while the distribution
+defines which versions are known to work together.
+
+## Community
+
+OpenRec welcomes bug reports, documentation improvements, integrations, algorithms, SDKs, and
+production feedback.
+
+- Read the [contribution guide](https://github.com/open-rec/.github/blob/master/CONTRIBUTING.md)
+  before opening a pull request.
+- Use the relevant component repository for scoped bugs and changes; use
+  [example issues](https://github.com/open-rec/example/issues) for installation, release, or
+  cross-component problems.
+- Follow the [Code of Conduct](https://github.com/open-rec/.github/blob/master/CODE_OF_CONDUCT.md).
+- Report vulnerabilities privately according to the
+  [security policy](https://github.com/open-rec/.github/blob/master/SECURITY.md).
+- See [Support](https://github.com/open-rec/.github/blob/master/SUPPORT.md) for help routing and the
+  information required for effective diagnosis.
+
+## License
+
+OpenRec components are released under the Apache License 2.0 unless a repository states otherwise.
+Third-party services and dependencies retain their respective licenses.

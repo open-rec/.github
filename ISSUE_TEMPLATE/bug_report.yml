@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a reproducible OpenRec defect
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Never include credentials, tokens, private data, or unredacted production logs.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Distribution version, component tag, or commit SHA.
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Deployment mode
+      options: [Standalone, Cluster, Component only, Not applicable]
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, architecture, Docker, Java, Python, Maven, and relevant dependency versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Minimal numbered steps, commands, and sanitized configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and sanitized logs
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues and documentation.
+          required: true
+        - label: I removed credentials and private data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
