@@ -49,6 +49,45 @@ Console at `http://127.0.0.1:8095`.
 > The distribution is under active development. Review the deployment guide and replace all sample
 > credentials before exposing any service outside a trusted development network.
 
+## See OpenRec in action
+
+The Web Demo exercises the same recommendation API used by applications and SDKs. Switch users,
+scenes, and experiments; inspect recall and rank scores; then send exposure, click, collect,
+purchase, or negative-feedback events to see the next recommendation respond to behavior.
+
+![OpenRec Web Demo showing personalized recommendations, recall channels, ranking scores, and feedback controls](images/rec_web_demo.png)
+
+The OpenRec Console brings the serving and data planes into one control surface. Operators can
+inspect and publish recommendation graphs, govern immutable recall and model versions, configure
+offline workflows, and follow production traffic without assembling separate administration
+tools.
+
+### Serving Graph and experiments
+
+Visually inspect the live recommendation DAG, tune node configuration, and maintain experiment
+variants with an explicit default fallback. The graph view makes recall fan-out, filtering,
+combination, ranking, operation rules, and collection paths visible together.
+
+![OpenRec Console Serving Graph editor showing an online recommendation DAG and node configuration](images/ab_console.png)
+
+### Artifact and workflow lifecycle
+
+| Recall index operations | Offline recommendation workflow |
+|---|---|
+| ![Recall index versions with active and standby states and rollback controls](images/recall_console.png) | ![Offline Airflow DAG tasks and recommendation workflow configuration](images/offline_console.png) |
+| Review hot, new, and i2i index versions, atomically switch the active alias, retain rollback candidates, and restore the previous version. | Inspect task dependencies and publish configuration for scheduled recall pipelines managed through Airflow. |
+
+### Ranking and observability
+
+| Rank model lifecycle | Monitoring dashboard |
+|---|---|
+| ![Rank model training, evaluation, release, retention, and rollback controls](images/rank_console.png) | ![Embedded Grafana dashboard showing recommendation API traffic and latency](images/monitor_console.png) |
+| Train LR or FM candidates, enforce evaluation gates, publish an approved model, and roll back to a retained version by scene. | Track push and recommendation QPS, latency, errors, result volume, runtime components, and experiment dimensions in the embedded Grafana view. |
+
+Recall releases, offline workflows, rank-model lifecycle, and full experiment operations are
+cluster capabilities. Standalone mode keeps the same Web Demo and provides monitoring, entity
+diagnostics, and Serving Graph management for local development and integration testing.
+
 ## Product landscape
 
 ```mermaid
