@@ -1,7 +1,7 @@
 # OpenRec
 
 **An end-to-end open-source recommendation platform that grows from a single machine to a
-distributed data stack without changing your application API.**
+  distributed data stack without changing your application API.**
 
 OpenRec connects data ingestion, streaming and batch processing, recall generation, configurable
 online serving, model training, experimentation, observability, and operations in one system. Use
@@ -88,54 +88,11 @@ Recall releases, offline workflows, rank-model lifecycle, and full experiment op
 cluster capabilities. Standalone mode keeps the same Web Demo and provides monitoring, entity
 diagnostics, and Serving Graph management for local development and integration testing.
 
-## Product landscape
-
-```mermaid
-flowchart LR
-    Client[Applications and SDKs] --> Serving[rec-server<br/>online serving DAG]
-    Operator[Operators] --> Console[rec-console<br/>control plane]
-
-    subgraph DataPlane[Data and model plane]
-        Stream[data-processor<br/>streaming projections]
-        Offline[rec-algorithm<br/>recall · feature · rank]
-        Rank[rank-engine<br/>model inference]
-        Stores[(Redis · Elasticsearch<br/>Kafka · HDFS · Hive · HBase)]
-    end
-
-    Serving --> Rank
-    Serving <--> Stores
-    Stream --> Stores
-    Offline --> Stores
-    Console --> Serving
-    Console --> Rank
-    Console --> Offline
-
-    Platform[bigdata-platform<br/>infrastructure · scheduling · monitoring] --- Stores
-    Distribution[example<br/>release · deployment · end-to-end CI] --- Serving
-    Distribution --- Console
-```
-
-### Recommendation lifecycle
-
-```mermaid
-flowchart LR
-    Ingest[Users · items · events] --> Project[Online projection]
-    Ingest --> Lake[Historical data]
-    Lake --> Compute[Recall and model jobs]
-    Compute --> Validate[Validate immutable artifacts]
-    Validate --> Activate[Atomic activation]
-    Activate --> Recommend[Online recommendation DAG]
-    Recommend --> Feedback[Exposure · click · conversion]
-    Feedback --> Ingest
-    Observe[Metrics · analytics · experiments] --> Compute
-    Observe --> Recommend
-```
-
 ## Deployment modes
 
 | Capability | Standalone | Cluster |
 |---|---|---|
-| Intended use | Local development and small-to-medium integration | Distributed, production-oriented integration |
+| Intended use | Local development and small-to-medium integration | Distributed integration and production reference architecture |
 | Application API and serving DAG | `rec-server` | The same `rec-server` contract |
 | Online state | Redis | Redis projections from Kafka |
 | Recall and vector indexes | Elasticsearch | Versioned Elasticsearch indexes and active aliases |
@@ -148,6 +105,10 @@ flowchart LR
 
 Both modes use the same sample data, recommendation API, serving graph contract, and Web Demo. The
 deployment profile changes the data path rather than the application integration.
+
+> The supplied Compose cluster is a reproducible integration topology, not a production-ready HA
+> deployment. Production operators must provide authentication, secret management, network
+> isolation, backup, capacity planning, and highly available data services.
 
 ## Standalone architecture
 
