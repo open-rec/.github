@@ -16,9 +16,9 @@ fixes across affected repositories, and publish an advisory when users can take 
 
 ## Supported versions
 
-Until OpenRec publishes its first stable release, only the latest distribution manifest on the
-default branch receives security fixes. After `v1.0.0`, the distribution release notes will identify
-the supported release lines and end-of-support dates.
+OpenRec 0.1.x is the initial supported source-release line. Report issues against the exact
+distribution manifest and component commits; arbitrary component combinations are not validated.
+Future releases will document changes to supported lines and migration requirements.
 
 ## Deployment responsibility
 

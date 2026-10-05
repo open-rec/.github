@@ -9,10 +9,10 @@ the lightweight standalone distribution for development and small-to-medium work
 the cluster distribution for Kafka, Spark, Airflow, versioned recall indexes, and model lifecycle
 management.
 
-[Get started](https://github.com/open-rec/example#quick-start) ·
-[Standalone guide](https://github.com/open-rec/example/tree/master/example_standalone) ·
-[Cluster guide](https://github.com/open-rec/example/tree/master/example_cluster) ·
-[Architecture](https://github.com/open-rec/example/blob/master/docs/architecture.md) ·
+[Get started](https://github.com/open-rec/openrec#quick-start) ·
+[Standalone guide](https://github.com/open-rec/openrec/tree/master/example_standalone) ·
+[Cluster guide](https://github.com/open-rec/openrec/tree/master/example_cluster) ·
+[Architecture](https://github.com/open-rec/openrec/blob/master/docs/architecture.md) ·
 [Contributing](https://github.com/open-rec/.github/blob/master/CONTRIBUTING.md) ·
 [Security](https://github.com/open-rec/.github/blob/master/SECURITY.md)
 
@@ -37,7 +37,7 @@ Clone the distribution repository together with its sibling components, then sta
 complete recommendation chain:
 
 ```shell
-git clone https://github.com/open-rec/example.git
+git clone --branch v0.1.0 https://github.com/open-rec/openrec.git
 cd example
 ./scripts/checkout-components.sh
 ./example_standalone/start.sh
@@ -46,7 +46,8 @@ cd example
 After the acceptance check succeeds, open the Web Demo at `http://127.0.0.1:12345` and the OpenRec
 Console at `http://127.0.0.1:8095`.
 
-> The distribution is under active development. Review the deployment guide and replace all sample
+> [OpenRec v0.1.0](https://github.com/open-rec/openrec/releases/tag/v0.1.0) is the first coordinated source release.
+> Review the deployment guide and replace all sample
 > credentials before exposing any service outside a trusted development network.
 
 ## See OpenRec in action
@@ -167,7 +168,7 @@ Start the complete standalone example:
 ./example/example_standalone/start.sh
 ```
 
-See the [standalone guide](https://github.com/open-rec/example/tree/master/example_standalone) for
+See the [standalone guide](https://github.com/open-rec/openrec/tree/master/example_standalone) for
 prerequisites, endpoints, smoke verification, and troubleshooting.
 
 ## Cluster architecture
@@ -298,14 +299,14 @@ Main endpoints after startup:
 | Spark | `http://<host>:8083` |
 | Flink | `http://<host>:8087` |
 
-See the [cluster guide](https://github.com/open-rec/example/tree/master/example_cluster) for the
+See the [cluster guide](https://github.com/open-rec/openrec/tree/master/example_cluster) for the
 full startup sequence, service ownership, DAG behavior, and troubleshooting.
 
 ## Component map
 
 | Repository | Responsibility | Start here when… |
 |---|---|---|
-| **[example](https://github.com/open-rec/example)** | OpenRec distribution, deployment guides, version manifest, runnable examples, and end-to-end CI | You want to install, evaluate, or release OpenRec |
+| **[openrec](https://github.com/open-rec/openrec)** | OpenRec distribution, deployment guides, version manifest, runnable examples, and end-to-end CI | You want to install, evaluate, or release OpenRec |
 | **[rec-server](https://github.com/open-rec/rec-server)** | Java online service, recommendation protocol, serving DAG, recall/filter/rank nodes | You are extending online recommendation behavior |
 | **[rec-console](https://github.com/open-rec/rec-console)** | Operations UI and APIs for graph, workflow, recall, model, experiment, analytics, and diagnostics | You are operating or governing the platform |
 | **[rec-algorithm](https://github.com/open-rec/rec-algorithm)** | Local and Spark recall, embedding, feature, ranking, evaluation, and publication jobs | You are developing offline algorithms |
@@ -316,11 +317,11 @@ full startup sequence, service ownership, DAG behavior, and troubleshooting.
 | **[model](https://github.com/open-rec/model)** | Sample recall datasets, features, and rank artifacts | You need reproducible sample artifacts |
 
 Dependency direction and repository ownership are maintained in the
-[distribution architecture](https://github.com/open-rec/example/blob/master/docs/architecture.md).
+[distribution architecture](https://github.com/open-rec/openrec/blob/master/docs/architecture.md).
 
 ## Quality and releases
 
-The [example distribution](https://github.com/open-rec/example) is the compatibility authority for
+The [example distribution](https://github.com/open-rec/openrec) is the compatibility authority for
 a complete OpenRec version. Its manifest records the component refs used by a release, and its CI
 verifies four levels:
 
@@ -341,7 +342,7 @@ production feedback.
 - Read the [contribution guide](https://github.com/open-rec/.github/blob/master/CONTRIBUTING.md)
   before opening a pull request.
 - Use the relevant component repository for scoped bugs and changes; use
-  [example issues](https://github.com/open-rec/example/issues) for installation, release, or
+  [example issues](https://github.com/open-rec/openrec/issues) for installation, release, or
   cross-component problems.
 - Follow the [Code of Conduct](https://github.com/open-rec/.github/blob/master/CODE_OF_CONDUCT.md).
 - Report vulnerabilities privately according to the
