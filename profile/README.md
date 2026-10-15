@@ -37,10 +37,10 @@ Clone the distribution repository together with its sibling components, then sta
 complete recommendation chain:
 
 ```shell
-git clone --branch v0.1.0 https://github.com/open-rec/openrec.git
-cd example
-./scripts/checkout-components.sh
-./example_standalone/start.sh
+git clone --branch v0.1.0 https://github.com/open-rec/openrec.git openrec/example
+cd openrec
+./example/scripts/checkout-components.sh
+./example/example_standalone/start.sh
 ```
 
 After the acceptance check succeeds, open the Web Demo at `http://127.0.0.1:12345` and the OpenRec
@@ -83,7 +83,7 @@ combination, ranking, operation rules, and collection paths visible together.
 | Rank model lifecycle | Monitoring dashboard |
 |---|---|
 | ![Rank model training, evaluation, release, retention, and rollback controls](images/rank_console.png) | ![Embedded Grafana dashboard showing recommendation API traffic and latency](images/monitor_console.png) |
-| Train LR or FM candidates, enforce evaluation gates, publish an approved model, and roll back to a retained version by scene. | Track push and recommendation QPS, latency, errors, result volume, runtime components, and experiment dimensions in the embedded Grafana view. |
+| Train LR, FM, or LightGBM candidates, enforce evaluation gates, publish an approved model, and roll back the global active version independently for item and user targets. | Track push and recommendation QPS, latency, errors, result volume, runtime components, and experiment dimensions in the embedded Grafana view. |
 
 Recall releases, offline workflows, rank-model lifecycle, and full experiment operations are
 cluster capabilities. Standalone mode keeps the same Web Demo and provides monitoring, entity
@@ -310,11 +310,12 @@ full startup sequence, service ownership, DAG behavior, and troubleshooting.
 | **[rec-server](https://github.com/open-rec/rec-server)** | Java online service, recommendation protocol, serving DAG, recall/filter/rank nodes | You are extending online recommendation behavior |
 | **[rec-console](https://github.com/open-rec/rec-console)** | Operations UI and APIs for graph, workflow, recall, model, experiment, analytics, and diagnostics | You are operating or governing the platform |
 | **[rec-algorithm](https://github.com/open-rec/rec-algorithm)** | Local and Spark recall, embedding, feature, ranking, evaluation, and publication jobs | You are developing offline algorithms |
-| **[rank-engine](https://github.com/open-rec/rank-engine)** | Rank-model training/release support and online inference | You are adding or serving ranking models |
+| **[rank-engine](https://github.com/open-rec/rank-engine)** | Model loading, online inference, and activation/recovery state; offline training belongs to rec-algorithm | You are adding or serving ranking models |
 | **[data-processor](https://github.com/open-rec/data-processor)** | Kafka mutation processing and Redis/HBase/Hive projections with Spark and Flink | You are changing the real-time data path |
 | **[bigdata-platform](https://github.com/open-rec/bigdata-platform)** | Containerized storage, messaging, compute, scheduling, and monitoring infrastructure | You are deploying or debugging dependencies |
 | **[sdk](https://github.com/open-rec/sdk)** | Application client SDKs | You are integrating an application |
 | **[model](https://github.com/open-rec/model)** | Sample recall datasets, features, and rank artifacts | You need reproducible sample artifacts |
+| **[auto-test](https://github.com/open-rec/auto-test)** | Standalone/cluster integration runner for APIs, Web Demo, console interactions, and distribution acceptance scripts | You want to run a complete registered regression suite |
 
 Dependency direction and repository ownership are maintained in the
 [distribution architecture](https://github.com/open-rec/openrec/blob/master/docs/architecture.md).
@@ -328,8 +329,15 @@ verifies four levels:
 1. Repository policy, shell, Python DAG, Compose, and manifest validation.
 2. Cross-repository Java compilation and focused unit tests.
 3. Standalone startup, sample import, serving-graph execution, and a real recommendation request.
-4. Cluster ingestion, streaming projection, Hive persistence, recall publication, model lifecycle,
-   analytics, deletion semantics, and online serving.
+4. Cluster startup, streaming feature parity, recommendation warmup, recall diagnostics, ranked
+   recommendations, and Kafka ingestion through the bootstrap DAG.
+
+The cluster workflow invokes startup acceptance; deeper recall publication, model lifecycle,
+analytics, and deletion checks are separate distribution scripts.
+[auto-test](https://github.com/open-rec/auto-test) runs these scripts together with API and real
+browser tests in its cluster `full` suite, and provides the corresponding standalone suite.
+Its ordinary CI checks the framework and test collection; full regressions require a dedicated
+workspace with the running platform.
 
 Component repositories remain independently testable and releasable, while the distribution
 defines which versions are known to work together.
