@@ -10,8 +10,8 @@ the cluster distribution for Kafka, Spark, Airflow, versioned recall indexes, an
 management.
 
 [Get started](https://github.com/open-rec/openrec#quick-start) ·
-[Standalone guide](https://github.com/open-rec/openrec/tree/master/example_standalone) ·
-[Cluster guide](https://github.com/open-rec/openrec/tree/master/example_cluster) ·
+[Standalone guide](https://github.com/open-rec/openrec/tree/master/standalone) ·
+[Cluster guide](https://github.com/open-rec/openrec/tree/master/cluster) ·
 [Architecture](https://github.com/open-rec/openrec/blob/master/docs/architecture.md) ·
 [Contributing](https://github.com/open-rec/.github/blob/master/CONTRIBUTING.md) ·
 [Security](https://github.com/open-rec/.github/blob/master/SECURITY.md)
@@ -37,10 +37,10 @@ Clone the distribution repository together with its sibling components, then sta
 complete recommendation chain:
 
 ```shell
-git clone --branch v0.1.0 https://github.com/open-rec/openrec.git openrec/example
+git clone https://github.com/open-rec/openrec.git openrec/openrec
 cd openrec
-./example/scripts/checkout-components.sh
-./example/example_standalone/start.sh
+./openrec/scripts/release/checkout-components.sh
+./openrec/standalone/start.sh
 ```
 
 After the acceptance check succeeds, open the Web Demo at `http://127.0.0.1:12345` and the OpenRec
@@ -165,10 +165,10 @@ from this deployment-level diagram.
 Start the complete standalone example:
 
 ```shell
-./example/example_standalone/start.sh
+./openrec/standalone/start.sh
 ```
 
-See the [standalone guide](https://github.com/open-rec/openrec/tree/master/example_standalone) for
+See the [standalone guide](https://github.com/open-rec/openrec/tree/master/standalone) for
 prerequisites, endpoints, smoke verification, and troubleshooting.
 
 ## Cluster architecture
@@ -284,7 +284,7 @@ Key characteristics:
 Start and verify the complete cluster:
 
 ```shell
-./example/example_cluster/start.sh
+./openrec/cluster/start.sh
 ```
 
 Main endpoints after startup:
@@ -299,7 +299,7 @@ Main endpoints after startup:
 | Spark | `http://<host>:8083` |
 | Flink | `http://<host>:8087` |
 
-See the [cluster guide](https://github.com/open-rec/openrec/tree/master/example_cluster) for the
+See the [cluster guide](https://github.com/open-rec/openrec/tree/master/cluster) for the
 full startup sequence, service ownership, DAG behavior, and troubleshooting.
 
 ## Component map
